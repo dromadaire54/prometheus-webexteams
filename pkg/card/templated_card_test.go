@@ -2,10 +2,10 @@ package card
 
 import (
 	"context"
+	"github.com/infonova/prometheus-webexteams/pkg/testutils"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/prometheus-msteams/prometheus-msteams/pkg/testutils"
 )
 
 func Test_templatedCard_Convert(t *testing.T) {
@@ -113,7 +113,7 @@ func Test_templatedCard_Convert(t *testing.T) {
 						"@context": string("http://schema.org"),
 						"@type":    string("ViewAction"),
 						"name":     string("Runbook"),
-						"target":   []interface{}{string("https://github.com/bzon/prometheus-msteams")},
+						"target":   []interface{}{string("https://github.com/bzon/prometheus-webexteams")},
 					},
 				},
 			},

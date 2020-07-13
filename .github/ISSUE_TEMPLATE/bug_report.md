@@ -11,7 +11,7 @@ assignees: ''
 A clear and concise description of what the bug is.
 
 **Version**
-The docker image or release version of prometheus-msteams.
+The docker image or release version of prometheus-webexteams.
 
 **To Reproduce**
 Steps to reproduce the behavior:

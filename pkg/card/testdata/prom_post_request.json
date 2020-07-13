@@ -13,7 +13,7 @@
   },
   "commonAnnotations": {
       "summary": "Prometheus Test",
-      "runbook": "https://github.com/bzon/prometheus-msteams"
+      "runbook": "https://github.com/bzon/prometheus-webexteams"
   },
   "externalURL": "http://docker.for.mac.host.internal:9093",
   "alerts": [

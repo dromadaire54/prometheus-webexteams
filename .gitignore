@@ -4,8 +4,8 @@ bin/
 *.dll
 *.so
 *.dylib
-/prometheus-msteams-*
-/prometheus-msteams
+/prometheus-webexteams-*
+/prometheus-webexteams
 vendor/
 *.go.orig
 test-connectors.yaml
@@ -22,3 +22,6 @@ coverage.txt
 
 # MacOS stuff
 .DS_Store
+
+# GoLand stuff
+.idea

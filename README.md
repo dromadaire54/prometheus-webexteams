@@ -1,17 +1,17 @@
-[![GitHub tag](https://img.shields.io/github/tag/prometheus-msteams/prometheus-msteams.svg)](https://github.com/prometheus-msteams/prometheus-msteams/releases/)
-[![Build Status](https://travis-ci.org/prometheus-msteams/prometheus-msteams.svg?branch=master)](https://travis-ci.org/prometheus-msteams/prometheus-msteams)
-[![codecov](https://codecov.io/gh/prometheus-msteams/prometheus-msteams/branch/master/graph/badge.svg)](https://codecov.io/gh/prometheus-msteams/prometheus-msteams)
-[![Go Report Card](https://goreportcard.com/badge/github.com/prometheus-msteams/prometheus-msteams)](https://goreportcard.com/report/github.com/prometheus-msteams/prometheus-msteams)
+[![GitHub tag](https://img.shields.io/github/tag/infonova/prometheus-webexteams.svg)](https://github.com/infonova/prometheus-webexteams/releases/)
+[![Build Status](https://travis-ci.org/infonova/prometheus-webexteams.svg?branch=master)](https://travis-ci.org/infonova/prometheus-webexteams)
+[![codecov](https://codecov.io/gh/infonova/prometheus-webexteams/branch/master/graph/badge.svg)](https://codecov.io/gh/infonova/prometheus-webexteams)
+[![Go Report Card](https://goreportcard.com/badge/github.com/infonova/prometheus-webexteams)](https://goreportcard.com/report/github.com/infonova/prometheus-webexteams)
 
 ![](./docs/teams_screenshot.png)
 
 # Overview
 
-A lightweight Go Web Server that receives __POST__ alert messages from __Prometheus Alert Manager__ and sends it to a __Microsoft Teams Channel__ using an incoming webhook url. How light? See the [docker image](https://quay.io/repository/prometheusmsteams/prometheus-msteams?tab=tags)!
+A lightweight Go Web Server that receives __POST__ alert messages from __Prometheus Alert Manager__ and sends it to a __Cisco Webex Teams Space__ using an incoming webhook url. How light? See the [docker image](https://quay.io/repository/prometheuswebexteams/prometheus-webexteams?tab=tags)!
 
 ## Synopsis
 
-Alertmanager doesn't support sending to Microsoft Teams out of the box. Fortunately, they allow you to use a generic [webhook_config](https://prometheus.io/docs/alerting/configuration/#webhook_config) for cases like this. This project was inspired from [idealista's](https://github.com/idealista/) [prom2teams](https://github.com/idealista/prom2teams) which was written in Python.
+Alertmanager doesn't support sending to Cisco Webex Teams out of the box. Fortunately, they allow you to use a generic [webhook_config](https://prometheus.io/docs/alerting/configuration/#webhook_config) for cases like this. This project was inspired from [prometheus-msteams's](https://quay.io/repository/prometheusmsteams/prometheus-msteams) which was written in Go.
 
 ## Why choose Go? Not Python or Ruby or Node?
 
@@ -56,15 +56,15 @@ docker run -d -p 2000:2000 \
     --name="promteams" \
     -e TEAMS_INCOMING_WEBHOOK_URL="https://outlook.office.com/webhook/xxx" \
     -e TEAMS_REQUEST_URI=alertmanager \
-    quay.io/prometheusmsteams/prometheus-msteams
+    quay.io/prometheuswebexteams/prometheus-webexteams
 ```
 
 __OPTION 2:__ Run using binary.
 
-Download the binary for your platform and the default card template from [RELEASES](https://github.com/prometheus-msteams/prometheus-msteams/releases), then run the binary in the same directory as you have stored the `default-message-card.tmpl`  like the following:
+Download the binary for your platform and the default card template from [RELEASES](https://github.com/infonova/prometheus-webexteams/releases), then run the binary in the same directory as you have stored the `default-message-card.tmpl`  like the following:
 
 ```bash
-./prometheus-msteams -teams-request-uri alertmanager \
+./prometheus-webexteams -teams-request-uri alertmanager \
   -teams-incoming-webhook-url "https://outlook.office.com/webhook/xxx"
 ```
 
@@ -72,7 +72,7 @@ __OPTION 3:__ If you are going to deploy this in a **Kubernetes cluster**, check
 
 ### Setting up Prometheus Alert Manager
 
-By default, __prometheus-msteams__ creates a request uri handler __/alertmanager__.
+By default, __prometheus-webexteams__ creates a request uri handler __/alertmanager__.
 
 ```yaml
 route:
@@ -80,13 +80,13 @@ route:
   group_interval: 30s
   repeat_interval: 30s
   group_wait: 30s
-  receiver: 'prometheus-msteams'
+  receiver: 'prometheus-webexteams'
 
 receivers:
-- name: 'prometheus-msteams'
+- name: 'prometheus-webexteams'
   webhook_configs: # https://prometheus.io/docs/alerting/configuration/#webhook_config 
   - send_resolved: true
-    url: 'http://localhost:2000/alertmanager' # the prometheus-msteams proxy
+    url: 'http://localhost:2000/alertmanager' # the prometheus-webexteams proxy
 ```
 
 > If you don't have Prometheus running yet and you wan't to try how this works,  
@@ -167,13 +167,13 @@ docker run -d -p 2000:2000 \
     --name="promteams" \
     -v /tmp/config.yml:/tmp/config.yml \
     -e CONFIG_FILE="/tmp/config.yml" \
-    quay.io/prometheusmsteams/prometheus-msteams:v1.4.0
+    quay.io/prometheuswebexteams/prometheus-webexteams:v1.4.0
 ```
 
 When running as a binary, use the __-config-file__ flag.
 
 ```bash
-./prometheus-msteams server \
+./prometheus-webexteams server \
     -l localhost \
     -p 2000 \
     -config-file /tmp/config.yml
@@ -198,7 +198,7 @@ curl localhost:2000/config
 
 ### Setting up Prometheus Alert Manager
 
-Considering the __prometheus-msteams config file__ settings, your Alert Manager would have a configuration like the following.
+Considering the __prometheus-webexteams config file__ settings, your Alert Manager would have a configuration like the following.
 
 ```yaml
 route:
@@ -238,13 +238,13 @@ docker run -d -p 2000:2000 \
     -e TEAMS_INCOMING_WEBHOOK_URL="https://outlook.office.com/webhook/xxx" \
     -v /tmp/card.tmpl:/tmp/card.tmpl \
     -e TEMPLATE_FILE="/tmp/card.tmpl" \
-    quay.io/prometheusmsteams/prometheus-msteams
+    quay.io/prometheuswebexteams/prometheus-webexteams
 ```
 
 When running as a binary, use the __-template-file__ flag.
 
 ```bash
-./prometheus-msteams server \
+./prometheus-webexteams server \
     -l localhost \
     -p 2000 \
     -template-file /tmp/card.tmpl
@@ -281,7 +281,7 @@ All configuration from flags can be overwritten using environment variables.
 E.g, `-config-file` is `CONFIG_FILE`, `-debug` is `DEBUG`, `-log-format` is `LOG_FORMAT`.
 
 ```
-Usage of prometheus-msteams:
+Usage of prometheus-webexteams:
   -auto-escape-underscores
     	Automatically replace all '_' with '\_' from texts in the alert.
   -config-file string
@@ -312,7 +312,7 @@ Usage of prometheus-msteams:
 
 ## Kubernetes Deployment
 
-See [Helm Guide](./chart/prometheus-msteams/README.md).
+See [Helm Guide](./chart/prometheus-webexteams/README.md).
 
 ## Contributing
 

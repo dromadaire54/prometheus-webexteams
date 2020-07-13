@@ -17,7 +17,7 @@
 Clone this repository.
 
 ```bash
-helm repo add prometheus-msteams https://prometheus-msteams.github.io/helm-chart/
+helm repo add prometheus-webexteams https://prometheus-webexteams.github.io/helm-chart/
 ```
 
 ### Prepare the Deployment configuration
@@ -29,13 +29,13 @@ Create a helm values file to configure your Microsoft Teams channel connectors a
 ---
 replicaCount: 1
 image:
-  repository: quay.io/prometheusmsteams/prometheus-msteams
+  repository: quay.io/prometheuswebexteams/prometheus-webexteams
   tag: v1.4.0
 
 connectors:
-# in alertmanager, this will be used as http://prometheus-msteams:2000/bar
+# in alertmanager, this will be used as http://prometheus-webexteams:2000/bar
 - bar: https://outlook.office.com/webhook/xxxx/xxxx 
-# in alertmanager, this will be used as http://prometheus-msteams:2000/foo
+# in alertmanager, this will be used as http://prometheus-webexteams:2000/foo
 - foo: https://outlook.office.com/webhook/xxxx/xxxx
 
 # extraEnvs is useful for adding extra environment variables such as proxy settings
@@ -55,15 +55,15 @@ metrics:
     scrapeInterval: 30s
 ```
 
-See [Helm Configuration](#helm-configuration) and [App Configuration](https://github.com/prometheus-msteams/prometheus-msteams#configuration) for reference.
+See [Helm Configuration](#helm-configuration) and [App Configuration](https://github.com/infonova/prometheus-webexteams#configuration) for reference.
 
 
 ### Deploy to Kubernetes cluster
 
 ```bash
-helm upgrade --install prometheus-msteams \
+helm upgrade --install prometheus-webexteams \
   --namespace default -f config.yaml
-  prometheus-msteams/prometheus-msteams
+  prometheus-webexteams/prometheus-webexteams
 ```
 
 ### When using with Prometheus Operator
@@ -72,16 +72,16 @@ Please see [Prometheus Operator alerting docs](https://github.com/coreos/prometh
 
 ### Customise messages to MS Teams
 
-This application uses a [Default Teams Message Card Template](./prometheus-msteams/card.tmpl) to convert incoming Prometheus alerts to teams message cards. 
+This application uses a [Default Teams Message Card Template](./prometheus-webexteams/card.tmpl) to convert incoming Prometheus alerts to teams message cards. 
 This template can be customised by specifying the value of `customCardTemplate` parameter. 
 Simply create a new file that you want to use as your custom template (for example, `custom-card.tmpl`).
 You can use the `--set-file` flag to set the value from this file:
 
 ```bash
-helm upgrade --install prometheus-msteams \
+helm upgrade --install prometheus-webexteams \
   --namespace default -f config.yaml \
   --set-file customCardTemplate=custom-card.tmpl \
-  prometheus-msteams/prometheus-msteams
+  prometheus-webexteams/prometheus-webexteams
 ```
 
 Otherwise you can also set the value by specifying the template data directly via values file.
@@ -91,7 +91,7 @@ Otherwise you can also set the value by specifying the template data directly vi
 
 | Parameter                                  | Description                                                                                                                                                   | Default                                        |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `image.repository`                         | Image repository                                                                                                                                              | `quay.io/prometheusmsteams/prometheus-msteams` |
+| `image.repository`                         | Image repository                                                                                                                                              | `quay.io/prometheuswebexteams/prometheus-webexteams` |
 | `image.tag`                                | Image tag                                                                                                                                                     | `v1.4.0`                                       |
 | `image.pullPolicy`                         | Image pull policy                                                                                                                                             | `Always`                                       |
 | `extraEnvs`                                | Extra environment variables                                                                                                                                   | `{}`                                           |
@@ -100,7 +100,7 @@ Otherwise you can also set the value by specifying the template data directly vi
 | `service.port`                             | Service port                                                                                                                                                  | `2000`                                         |
 | `service.type`                             | Service type                                                                                                                                                  | `ClusterIP`                                    |
 | `container.port`                           | Container port                                                                                                                                                | `2000`                                         |
-| `container.additionalArgs`                 | additional prometheus-msteams flags to use                                                                                                                    | `{}`                                           |
+| `container.additionalArgs`                 | additional prometheus-webexteams flags to use                                                                                                                    | `{}`                                           |
 | `resources`                                | Pod resources                                                                                                                                                 | See [default](./values.yaml)                   |
 | `nodeSelector`                             | Pod nodeSelector                                                                                                                                              | `{}`                                           |
 | `affinity`                                 | Pod affinity                                                                                                                                                  | `{}`                                           |

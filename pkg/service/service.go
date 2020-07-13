@@ -5,15 +5,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/infonova/prometheus-webexteams/pkg/card"
 	"io/ioutil"
 	"net/http"
 
-	"github.com/prometheus-msteams/prometheus-msteams/pkg/card"
 	"github.com/prometheus/alertmanager/notify/webhook"
 	"go.opencensus.io/trace"
 )
 
-// PostResponse is the prometheus msteams service response.
+// PostResponse is the prometheus webex teams service response.
 type PostResponse struct {
 	WebhookURL string `json:"webhook_url"`
 	Status     int    `json:"status"`
@@ -82,6 +82,12 @@ func (s simpleService) post(ctx context.Context, c card.Office365ConnectorCard, 
 		err = fmt.Errorf("failed to creating a request: %w", err)
 		return pr, err
 	}
+
+	// Create a Bearer string by appending string access token
+	var bearer = "Bearer NzhiODhlZDYtZTFhZi00NGIyLWFlYWEtMGQ4N2EyNjIyYWNhYTY0OGQ5YzItZGNj_PF84_consumer"
+	// add authorization header to the req
+	req.Header.Add("Authorization", bearer)
+
 
 	resp, err := s.client.Do(req)
 	if err != nil {

@@ -2,7 +2,7 @@
 replicaCount: 1
 
 image:
-  repository: quay.io/prometheusmsteams/prometheus-msteams
+  repository: quay.io/prometheuswebexteams/prometheus-webexteams
   tag: v1.4.0
   pullPolicy: Always
 

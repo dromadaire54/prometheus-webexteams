@@ -1,6 +1,6 @@
 # Contributing
 
-prometheus-msteams is written in Go so ensure to install the latest stable version available.
+prometheus-webexteams is written in Go so ensure to install the latest stable version available.
 
 You can also [join](https://teams.microsoft.com/l/team/19%3a8f7647537f14400cbd7032d058a05648%40thread.skype/conversations?groupId=c49097a8-ba31-4e64-b482-a5626e7cac18&tenantId=b12d4011-2ea0-4377-a99b-35c565546afd) the Microsoft Teams Channel for discussions.
 

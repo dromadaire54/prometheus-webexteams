@@ -4,6 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/infonova/prometheus-webexteams/pkg/card"
+	"github.com/infonova/prometheus-webexteams/pkg/service"
+	"github.com/infonova/prometheus-webexteams/pkg/transport"
+	"github.com/infonova/prometheus-webexteams/pkg/version"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -13,10 +17,6 @@ import (
 
 	ocprometheus "contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/labstack/echo/v4"
-	"github.com/prometheus-msteams/prometheus-msteams/pkg/card"
-	"github.com/prometheus-msteams/prometheus-msteams/pkg/service"
-	"github.com/prometheus-msteams/prometheus-msteams/pkg/transport"
-	"github.com/prometheus-msteams/prometheus-msteams/pkg/version"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
 	"contrib.go.opencensus.io/exporter/jaeger"
@@ -65,7 +65,7 @@ func parseTeamsConfigFile(f string) (PromTeamsConfig, error) {
 
 func main() { //nolint: funlen
 	var (
-		fs                            = flag.NewFlagSet("prometheus-msteams", flag.ExitOnError)
+		fs                            = flag.NewFlagSet("prometheus-webexteams", flag.ExitOnError)
 		promVersion                   = fs.Bool("version", false, "Print the version")
 		logFormat                     = fs.String("log-format", "json", "json|fmt")
 		debugLogs                     = fs.Bool("debug", true, "Set log level to debug mode.")
@@ -119,7 +119,7 @@ func main() { //nolint: funlen
 		je, err := jaeger.NewExporter(
 			jaeger.Options{
 				AgentEndpoint: *jaegerAgentAddr,
-				ServiceName:   "prometheus-msteams",
+				ServiceName:   "prometheus-webexteams",
 			},
 		)
 		if err != nil {
@@ -273,7 +273,7 @@ func main() { //nolint: funlen
 		os.Exit(1)
 	}
 
-	// Prometheus msteams HTTP handler setup.
+	// Prometheus webex teams HTTP handler setup.
 	var handler *echo.Echo
 	{
 		// Main app.
