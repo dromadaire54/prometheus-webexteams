@@ -10,22 +10,26 @@
       "size": "large",
       "color": "light",
       "weight": "bolder"
-    },
-{{- if ne .CommonAnnotations.message "" -}}
-    {
-      "type": "TextBlock",
-      "text": "{{- .CommonAnnotations.message -}}",
-      "color": "Light",
-      "wrap": true
-    },
-{{- end -}}
+    }
+    {{- range $index, $alert := .Alerts -}}
+    {{- range $alert.Annotations.SortedPairs }}
+      {{- if eq .Name "message" -}}
+        ,{
+        "type": "TextBlock",
+        "text": "{{- .Value -}}",
+        "color": "Accent",
+        "size": "Medium",
+        "wrap": true
+        },
+      {{- end }}
+    {{- end -}}
     {
       "type": "ColumnSet",
       "columns": [
         {
           "type": "Column",
           "width": "1px",
-          "style": "{{- if eq .Status "resolved" -}}good{{- else -}}warning{{- end -}}",
+          "style": "{{- if eq $.Status "resolved" -}}good{{- else -}}warning{{- end -}}",
           "items": []
         },
         {
@@ -67,19 +71,19 @@
                   "items": [
                     {
                       "type": "TextBlock",
-                      "text": "{{- .CommonLabels.alertname -}}",
+                      "text": "{{- $.GroupLabels.alertname -}}",
                       "color": "Light",
                       "spacing": "Small"
                     },
                     {
                       "type": "TextBlock",
-                      "text": "{{- .CommonLabels.namespace -}}",
+                      "text": "{{- $.GroupLabels.namespace -}}",
                       "color": "Light",
                       "spacing": "Small"
                     },
                     {
                       "type": "TextBlock",
-                      "text": "{{- .CommonLabels.job -}}",
+                      "text": "{{- $.GroupLabels.job -}}",
                       "color": "Light",
                       "spacing": "Small"
                     }
@@ -104,7 +108,7 @@
                       "color": "Light",
                       "weight": "Bolder"
                     },
-    {{- range $index, $alert := .Alerts -}}
+
                     {
                       "type": "ColumnSet",
                       "columns": [
@@ -159,11 +163,14 @@
                                     {
                                       "type": "FactSet",
                                       "facts": [
-                                        {{- range $i, $e := $alert.Annotations.SortedPairs }}{{- if $i -}},{{- end -}}
-                                          {
-                                          "title": "{{ $e.Name }}",
-                                          "value": "{{ $e.Value }}"
-                                          }
+                                        {{- range $i, $e := $alert.Annotations.SortedPairs  }}
+                                          {{- if eq $e.Name "message" -}}
+                                            {{- if $i -}},{{- end -}}
+                                            {
+                                            "title": "{{ $e.Name }}",
+                                            "value": "{{ $e.Value }}"
+                                            }
+                                          {{- end -}}
                                         {{- end }}
                                       ]
                                     }
@@ -190,7 +197,7 @@
         {
           "type": "Action.OpenUrl",
           "title": "Runbook",
-          "url": "{{- $.CommonAnnotations.runbook_url -}}"
+          "url": "{{- $alert.Annotations.runbook_url -}}"
         },
         {
           "type": "Action.OpenUrl",

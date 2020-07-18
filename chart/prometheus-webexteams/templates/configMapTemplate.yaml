@@ -7,6 +7,4 @@ binaryData:
   card.tmpl: |-
 {{- if .Values.customCardTemplate }}
 {{ .Values.customCardTemplate | b64enc | indent 4 }}
-{{- else }}
-{{ .Files.Get "card.tmpl" | b64enc | indent 4 }}
 {{- end }}

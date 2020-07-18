@@ -1,40 +1,37 @@
 {
   "version": "4",
-  "groupKey": "{}:{alertname=\"high_memory_load\"}",
+  "groupKey": "{}:{alertname=\"high_memory_load\"}:{namespace=\"monlog\"}:{job=\"prom-kube-state-metrics\"}",
   "status": "firing",
   "receiver": "teams_proxy",
   "groupLabels": {
-      "alertname": "high_memory_load"
+    "alertname": "HighScrapeDuration",
+    "namespace": "monlog",
+    "job": "prom-kube-state-metrics"
   },
-  "commonLabels": {
-      "alertname": "high_memory_load",
-      "job": "docker_nodes",
-      "namespace": "monlog",
-      "monitor": "master",
-      "severity": "warning"
-  },
-  "commonAnnotations": {
-      "summary": "Prometheus Test",
-      "runbook_url": "https://github.com/bzon/prometheus-webexteams",
-      "message": "Look out! Increase of the offset ..."
-  },
+  "commonLabels": {},
+  "commonAnnotations": {},
   "externalURL": "http://alertmanager.monlog.dev.lkw-walter.com",
   "alerts": [
-      {
-          "labels": {
-              "alertname": "high_memory_load",
-              "instance": "instance-with-hyphen_and_underscore",
-              "job": "docker_nodes",
-              "monitor": "master",
-              "severity": "warning",
-              "namespace": "monlog"
-          },
-          "annotations": {
-              "description": "10.80.40.11 reported high memory usage with 23.28%.",
-              "summary": "Server High Memory usage"
-          },
-          "startsAt": "2018-03-07T06:33:21.873077559-05:00",
-          "endsAt": "0001-01-01T00:00:00Z"
-      }
+    {
+      "labels": {
+        "alertname": "HighScrapeDuration",
+        "endpoint": "http",
+        "instance": "10.244.18.41:8080",
+        "job": "prom-kube-state-metrics",
+        "label_app_kubernetes_io_name": "kube-state-metrics",
+        "namespace": "monlog",
+        "pod": "prom-kube-state-metrics-7c8d9487b9-n9vqd",
+        "prometheus": "monlog/app-prometheus-operator-prometheus",
+        "service": "prom-kube-state-metrics",
+        "severity": "warning",
+        "stage": "dev"
+      },
+      "annotations": {
+        "message": "The scrape duration of 10.244.18.41:8080/prom-kube-state-metrics is high.",
+        "runbook_url": "http://lkwconfluence.lkw-walter.com/display/MM/HighScrapeDuration"
+      },
+      "startsAt": "2018-03-07T06:33:21.873077559-05:00",
+      "endsAt": "0001-01-01T00:00:00Z"
+    }
   ]
 }

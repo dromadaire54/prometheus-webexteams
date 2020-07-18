@@ -3,7 +3,7 @@ replicaCount: 1
 
 image:
   repository: quay.io/prometheuswebexteams/prometheus-webexteams
-  tag: v1.4.0
+  tag: v0.0.1
   pullPolicy: Always
 
 extraEnvs:
@@ -43,14 +43,4 @@ metrics:
     scrapeInterval: 30s
 
 connectors: []
-connectors_with_custom_templates: []
-
-
-## Specify the custom message card template for MS teams
-# customCardTemplate: |
-#   {{ define "teams.card" }}
-#   {
-#     
-#   }
-#   {{ end }}
 
