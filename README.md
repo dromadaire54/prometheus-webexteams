@@ -7,22 +7,15 @@
 
 # Overview
 
-A lightweight Go Web Server that receives __POST__ alert messages from __Prometheus Alert Manager__ and sends it to a __Cisco Webex Teams Space__ using an incoming webhook url. How light? See the [docker image](https://quay.io/repository/prometheuswebexteams/prometheus-webexteams?tab=tags)!
+A lightweight Go Web Server that receives __POST__ alert messages from __Prometheus Alertmanager__ and sends it to a __Cisco Webex Teams Room__ using the Webex API.
 
 ## Synopsis
 
-Alertmanager doesn't support sending to Cisco Webex Teams out of the box. Fortunately, they allow you to use a generic [webhook_config](https://prometheus.io/docs/alerting/configuration/#webhook_config) for cases like this. This project was inspired from [prometheus-msteams's](https://quay.io/repository/prometheusmsteams/prometheus-msteams) which was written in Go.
-
-## Why choose Go? Not Python or Ruby or Node?
-
-Why use [Go](https://golang.org/)? A Go binary is statically compiled unlike the other simple language (python, ruby, node). Having a static binary means that there is no need for you to install your program's dependencies and these dependencies takes up a lot of space in your docker image! Try it out DevOps folks!
+Alertmanager doesn't support sending to Cisco Webex Teams out of the box. Fortunately, they allow you to use a generic [webhook_config](https://prometheus.io/docs/alerting/configuration/#webhook_config) for cases like this. This project was inspired from [prometheus-msteams's](https://quay.io/repository/prometheusmsteams/prometheus-msteams) which was written in Go for Microsoft Teams.
 
 ## Table of Contents
 
 <!-- vim-markdown-toc GFM -->
-
-- [Synopsis](#synopsis)
-- [Why choose Go? Not Python or Ruby or Node?](#why-choose-go-not-python-or-ruby-or-node)
 - [Getting Started (Quickstart)](#getting-started-quickstart)
   - [Installation](#installation)
   - [Setting up Prometheus Alert Manager](#setting-up-prometheus-alert-manager)
@@ -54,8 +47,8 @@ __OPTION 1:__ Run using docker.
 ```bash
 docker run -d -p 2000:2000 \
     --name="promteams" \
-    -e TEAMS_INCOMING_WEBHOOK_URL="https://outlook.office.com/webhook/xxx" \
-    -e TEAMS_REQUEST_URI=alertmanager \
+    -e TEAMS_ACCESS_TOKEN="NzhiODhlZDYtZTF..." \
+    -e TEAMS_ROOM_ID="Y2lzY29zcGFyazovL3VzL1JPT00vYWZmMTllNTAtY..." \
     quay.io/prometheuswebexteams/prometheus-webexteams
 ```
 
@@ -64,13 +57,13 @@ __OPTION 2:__ Run using binary.
 Download the binary for your platform and the default card template from [RELEASES](https://github.com/infonova/prometheus-webexteams/releases), then run the binary in the same directory as you have stored the `default-message-card.tmpl`  like the following:
 
 ```bash
-./prometheus-webexteams -teams-request-uri alertmanager \
-  -teams-incoming-webhook-url "https://outlook.office.com/webhook/xxx"
+./bin/prometheus-webexteams-<goos>-<goarch> -teams-access-tocken "NzhiODhlZDYtZTF..." \
+  -teams-room-id "Y2lzY29zcGFyazovL3VzL1JPT00vYWZmMTllNTAtY..."
 ```
 
 __OPTION 3:__ If you are going to deploy this in a **Kubernetes cluster**, checkout the [Kubernetes Deployment Guide](#kubernetes-deployment).
 
-### Setting up Prometheus Alert Manager
+### Setting up Prometheus Alertmanager
 
 By default, __prometheus-webexteams__ creates a request uri handler __/alertmanager__.
 
@@ -92,7 +85,7 @@ receivers:
 > If you don't have Prometheus running yet and you wan't to try how this works,  
 > try [stefanprodan's](https://github.com/stefanprodan) [Prometheus in Docker](https://github.com/stefanprodan/dockprom) to help you install a local Prometheus setup quickly in a single machine.
 
-### Simulating a Prometheus Alerts to Teams Channel
+### Simulating a Prometheus Alerts to Teams Room
 
 Create the following json data as `prom-alert.json`.
 
@@ -140,9 +133,9 @@ curl -X POST -d @prom-alert.json http://localhost:2000/alertmanager
 
 The teams channel should received a message.
 
-## Sending Alerts to Multiple Teams Channel
+## Sending Alerts to Multiple Teams Rooms
 
-You can configure this application to serve 2 or more request path and each path can use a unique Teams channel webhook url to post.
+You can configure this application to serve 2 or more request path and each path can use a unique Teams room to post.
 
 ![multiChannel](./docs/promteams_multiconfig.png)
 
