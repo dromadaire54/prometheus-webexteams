@@ -1,0 +1,12 @@
+{{ define "teams.request" }}
+{
+        "roomId": "{{ .RoomId }}",
+        "text": "alert in card format ...",
+        "attachments": [
+        {
+            "contentType": "application/vnd.microsoft.card.adaptive",
+            "content": {{ .Card }}
+        }
+    ]
+}
+{{ end }}

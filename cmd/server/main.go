@@ -36,16 +36,14 @@ import (
 
 // PromTeamsConfig is the struct representation of the config file.
 type PromTeamsConfig struct {
-	// Connectors
-	// The key is the request path for Prometheus to post to.
-	// The value is the Teams webhook url.
-	Connectors                    []map[string]string           `yaml:"connectors"`
-	ConnectorsWithCustomTemplates []ConnectorWithCustomTemplate `yaml:"connectors_with_custom_templates"`
+	Connectors []Connector `yaml:"connectors"`
 }
 
 // ConnectorWithCustomTemplate .
-type ConnectorWithCustomTemplate struct {
+type Connector struct {
 	RequestPath       string `yaml:"request_path"`
+	AccessToken       string `yaml:"access_token"`
+	RoomId            string `yaml:"room_id"`
 	TemplateFile      string `yaml:"template_file"`
 	WebhookURL        string `yaml:"webhook_url"`
 	EscapeUnderscores bool   `yaml:"escape_underscores"`
@@ -72,10 +70,12 @@ func main() { //nolint: funlen
 		jaegerTrace                   = fs.Bool("jaeger-trace", false, "Send traces to Jaeger.")
 		jaegerAgentAddr               = fs.String("jaeger-agent", "localhost:6831", "Jaeger agent endpoint")
 		httpAddr                      = fs.String("http-addr", ":2000", "HTTP listen address.")
-		requestURI                    = fs.String("teams-request-uri", "", "The default request URI path where Prometheus will post to.")
-		teamsWebhookURL               = fs.String("teams-incoming-webhook-url", "", "The default Microsoft Teams webhook connector.")
-		templateFile                  = fs.String("template-file", "./default-message-card.tmpl", "The Microsoft Teams Message Card template file.")
-		escapeUnderscores             = fs.Bool("auto-escape-underscores", true, "Automatically replace all '_' with '\\_' from texts in the alert.")
+		requestURI                    = fs.String("request-uri", "alertmanager", "The default request URI path where Prometheus will post to.")
+		teamsWebhookURL               = fs.String("teams-webhook-url", "https://webexapis.com/v1/messages", "The default Webex Teams webhook connector.")
+		teamsAccessToken              = fs.String("teams-access-token", "", "The access token to authorize the requests.")
+		teamsRoomId                   = fs.String("teams-room-id", "", "The room specifies the target room of the messages.")
+		templateFile                  = fs.String("template-file", "resources/default-message-card.tmpl", "The default Webex Teams Message Card template file.")
+		escapeUnderscores             = fs.Bool("escape-underscores", false, "Automatically replace all '_' with '\\_' from texts in the alert.")
 		configFile                    = fs.String("config-file", "", "The connectors configuration file.")
 		httpClientIdleConnTimeout     = fs.Duration("idle-conn-timeout", 90*time.Second, "The HTTP client idle connection timeout duration.")
 		httpClientTLSHandshakeTimeout = fs.Duration("tls-handshake-timeout", 30*time.Second, "The HTTP client TLS handshake timeout.")
@@ -123,7 +123,7 @@ func main() { //nolint: funlen
 			},
 		)
 		if err != nil {
-			logger.Log("err", err)
+			fmt.Fprint(os.Stderr, err.Error())
 			os.Exit(1)
 		}
 
@@ -143,11 +143,25 @@ func main() { //nolint: funlen
 
 	// Parse the config file if defined.
 	if *configFile != "" {
+		// parse config file
 		tc, err = parseTeamsConfigFile(*configFile)
 		if err != nil {
-			logger.Log("err", err)
+			fmt.Fprint(os.Stderr, err.Error())
 			os.Exit(1)
 		}
+	} else {
+		// create a connector from flags
+		tc.Connectors = append(
+			tc.Connectors,
+			Connector{
+				RequestPath:       *requestURI,
+				WebhookURL:        *teamsWebhookURL,
+				AccessToken:       *teamsAccessToken,
+				RoomId:            *teamsRoomId,
+				TemplateFile:      *templateFile,
+				EscapeUnderscores: *escapeUnderscores,
+			},
+		)
 	}
 
 	// Templated card defaultConverter setup.
@@ -186,46 +200,27 @@ func main() { //nolint: funlen
 	}
 
 	var routes []transport.Route
-
-	// Connectors from flags.
-	if len(*requestURI) > 0 && len(*teamsWebhookURL) > 0 {
-		tc.Connectors = append(
-			tc.Connectors,
-			map[string]string{
-				*requestURI: *teamsWebhookURL,
-			},
-		)
-	}
-
-	// Connectors from config file.
 	for _, c := range tc.Connectors {
-		for uri, webhook := range c {
-			var r transport.Route
-			r.RequestPath = uri
-			r.Service = service.NewSimpleService(defaultConverter, httpClient, webhook)
-			r.Service = service.NewLoggingService(logger, r.Service)
-			routes = append(routes, r)
-		}
-	}
 
-	// Connectors with custom template files.
-	for _, c := range tc.ConnectorsWithCustomTemplates {
+		// check connector configuration
 		if len(c.RequestPath) == 0 {
 			logger.Log("err", "one of the 'templated_connectors' is missing a 'request_path'")
 			os.Exit(1)
 		}
 		if len(c.WebhookURL) == 0 {
-			logger.Log(
-				"err",
-				fmt.Sprintf("The webhook_url is required for request_path '%s'", c.RequestPath),
-			)
+			logger.Log("err", fmt.Sprintf("The teams-webhook-url is required for request_path '%s'", c.RequestPath))
+			os.Exit(1)
+		}
+		if len(c.AccessToken) == 0 {
+			logger.Log("err", fmt.Sprintf("The teams-access-token is required for request_path '%s'", c.RequestPath))
+			os.Exit(1)
+		}
+		if len(c.RoomId) == 0 {
+			logger.Log("err", fmt.Sprintf("The teams-room-id is required for request_path '%s'", c.RequestPath))
 			os.Exit(1)
 		}
 		if len(c.TemplateFile) == 0 {
-			logger.Log(
-				"err",
-				fmt.Sprintf("The template_file is required for request_path '%s'", c.RequestPath),
-			)
+			logger.Log("err", fmt.Sprintf("The template_file is required for request_path '%s'", c.RequestPath))
 			os.Exit(1)
 		}
 
@@ -236,7 +231,6 @@ func main() { //nolint: funlen
 			os.Exit(1)
 		}
 
-		// converter = card.NewTemplatedCardCreator(tmpl, c.EscapeUnderscores, c.DisableGrouping)
 		converter = card.NewTemplatedCardCreator(tmpl, c.EscapeUnderscores)
 		converter = card.NewCreatorLoggingMiddleware(
 			log.With(
@@ -249,7 +243,7 @@ func main() { //nolint: funlen
 
 		var r transport.Route
 		r.RequestPath = c.RequestPath
-		r.Service = service.NewSimpleService(converter, httpClient, c.WebhookURL)
+		r.Service = service.NewSimpleService(converter, httpClient, c.WebhookURL, c.AccessToken, c.RoomId)
 		r.Service = service.NewLoggingService(logger, r.Service)
 		routes = append(routes, r)
 	}

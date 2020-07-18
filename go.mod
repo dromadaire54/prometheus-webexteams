@@ -19,6 +19,7 @@ require (
 	github.com/peterbourgon/ff v1.7.0
 	github.com/prometheus/alertmanager v0.20.0
 	github.com/prometheus/client_golang v1.4.0
+	github.com/xeipuuv/gojsonschema v1.2.0
 	go.opencensus.io v0.22.2
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/apimachinery v0.18.5 // indirect

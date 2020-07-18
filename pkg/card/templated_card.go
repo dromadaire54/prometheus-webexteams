@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -27,31 +26,19 @@ func NewTemplatedCardCreator(template *template.Template, escapeUnderscores bool
 	return &templatedCard{template, escapeUnderscores}
 }
 
-func (m *templatedCard) Convert(ctx context.Context, promAlert webhook.Message) (Office365ConnectorCard, error) {
+func (m *templatedCard) Convert(ctx context.Context, promAlert webhook.Message) (string, error) {
 	_, span := trace.StartSpan(ctx, "templatedCard.Convert")
 	defer span.End()
 
 	cardString, err := m.executeTemplate(promAlert)
 	if err != nil {
-		return Office365ConnectorCard{}, err
+		return "", err
 	}
 
-	var card Office365ConnectorCard
-	if err := json.Unmarshal([]byte(cardString), &card); err != nil {
-		return Office365ConnectorCard{}, err
-	}
-
-	if card.Type != "MessageCard" {
-		return Office365ConnectorCard{}, errors.New("only MessageCard type is supported")
-	}
-
-	return card, nil
+	return cardString, nil
 }
 
 func (m *templatedCard) executeTemplate(promAlert webhook.Message) (string, error) {
-	// TODO(bzon): Maybe we can escape underscores after the office 365 card is finally created?
-	// That approach would be simpler to read and probably a performance gain because
-	// we don't have to run json.NewEncoder(v).Encode() multiple times.
 	if m.escapeUnderscores {
 		promAlert = jsonEscapeMessage(promAlert)
 	}

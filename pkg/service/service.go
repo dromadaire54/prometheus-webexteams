@@ -1,13 +1,12 @@
 package service
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/infonova/prometheus-webexteams/pkg/card"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/prometheus/alertmanager/notify/webhook"
 	"go.opencensus.io/trace"
@@ -20,74 +19,70 @@ type PostResponse struct {
 	Message    string `json:"message"`
 }
 
-// Service is the Alertmanager to Microsoft Teams webhook service.
+// Service is the Alertmanager to Webex Teams webhook service.
 type Service interface {
-	Post(context.Context, webhook.Message) (resp []PostResponse, err error)
+	Post(context.Context, webhook.Message) (resp PostResponse, err error)
 }
 
 type simpleService struct {
-	converter  card.Converter
-	client     *http.Client
-	webhookURL string
+	converter   card.Converter
+	client      *http.Client
+	webhookURL  string
+	accessToken string
+	roomId      string
+}
+
+type requestData struct {
+	RoomId string
+	Card   string
 }
 
 // NewSimpleService creates a simpleService.
-func NewSimpleService(converter card.Converter, client *http.Client, webhookURL string) Service {
-	return simpleService{converter, client, webhookURL}
+func NewSimpleService(converter card.Converter, client *http.Client, webhookURL string, accessToken string, roomId string) Service {
+	return simpleService{converter, client, webhookURL, accessToken, roomId}
 }
 
-func (s simpleService) Post(ctx context.Context, wm webhook.Message) ([]PostResponse, error) {
+func (s simpleService) Post(ctx context.Context, wm webhook.Message) (PostResponse, error) {
 	ctx, span := trace.StartSpan(ctx, "simpleService.Post")
 	defer span.End()
 
-	prs := []PostResponse{}
-
 	c, err := s.converter.Convert(ctx, wm)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse webhook message: %w", err)
+		return PostResponse{}, fmt.Errorf("failed to parse webhook message: %w", err)
 	}
 
-	// Split into multiple messages if necessary.
-	cc, err := splitOffice365Card(c)
-	if err != nil {
-		return nil, fmt.Errorf("failed to split Office 365 Card: %w", err)
-	}
+	pr, err := s.post(ctx, c, s.webhookURL)
 
-	// TODO(@bzon): post concurrently.
-	for _, c := range cc {
-		pr, err := s.post(ctx, c, s.webhookURL)
-		prs = append(prs, pr)
-		if err != nil {
-			return prs, err
-		}
-	}
-
-	return prs, nil
+	return pr, nil
 }
 
-func (s simpleService) post(ctx context.Context, c card.Office365ConnectorCard, url string) (PostResponse, error) {
+func (s simpleService) post(ctx context.Context, c string, url string) (PostResponse, error) {
 	ctx, span := trace.StartSpan(ctx, "simpleService.post")
 	defer span.End()
 
 	pr := PostResponse{WebhookURL: url}
 
-	b, err := json.Marshal(c)
+	data := requestData{
+		RoomId: s.roomId,
+		Card:   c,
+	}
+	tmpl, err := card.ParseTemplateFile("./resources/webex-teams-request.tmpl")
 	if err != nil {
-		err = fmt.Errorf("failed to decoding JSON card: %w", err)
+		err = fmt.Errorf("load 'message.request' template failed: %w", err)
 		return pr, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", s.webhookURL, bytes.NewBuffer(b))
+	var reqStr string
+	reqStr, err = tmpl.ExecuteTextString(`{{ template "teams.request" . }}`, data)
 	if err != nil {
-		err = fmt.Errorf("failed to creating a request: %w", err)
+		err = fmt.Errorf("execute 'message.request' template failed: %w", err)
 		return pr, err
 	}
 
-	// Create a Bearer string by appending string access token
-	var bearer = "Bearer NzhiODhlZDYtZTFhZi00NGIyLWFlYWEtMGQ4N2EyNjIyYWNhYTY0OGQ5YzItZGNj_PF84_consumer"
-	// add authorization header to the req
-	req.Header.Add("Authorization", bearer)
-
+	req, err := http.NewRequestWithContext(ctx, "POST", s.webhookURL, strings.NewReader(reqStr))
+	// add authorization header to the request
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", s.accessToken))
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -107,61 +102,4 @@ func (s simpleService) post(ctx context.Context, c card.Office365ConnectorCard, 
 	pr.Message = string(rb)
 
 	return pr, nil
-}
-
-// splitOffice365Card splits a single Office365ConnectorCard into multiple Office365ConnectorCard.
-// The purpose of doing this is to prevent getting limited by Microsoft Teams API when sending a large JSON payload.
-func splitOffice365Card(c card.Office365ConnectorCard) ([]card.Office365ConnectorCard, error) {
-	// Maximum message size of 14336 Bytes (14KB)
-	const maxSize = 14336
-	// Maximum number of sections
-	// ref: https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/cards/cards-reference#notes-on-the-office-365-connector-card
-	const maxCardSections = 10
-
-	var cards []card.Office365ConnectorCard
-
-	// marshal cards in order to get the byte size
-	cb, err := json.Marshal(c)
-	if err != nil {
-		return nil, err
-	}
-
-	// Everything is good.
-	if (len(c.Sections) < maxCardSections) && (len(cb) < maxSize) {
-		cards = append(cards, c)
-		return cards, nil
-	}
-
-	indexAdded := make(map[int]bool)
-
-	// Here, we keep creating a new card until all sections are transferred into a new card.
-	for len(indexAdded) != len(c.Sections) {
-		newCard := c // take all the attributes
-		newCard.Sections = nil
-
-		for i, s := range c.Sections {
-			if _, ok := indexAdded[i]; ok { // check if the index is already added.
-				continue
-			}
-
-			// marshal cards in order to get the byte size
-			newCardb, err := json.Marshal(newCard)
-			if err != nil {
-				return nil, err
-			}
-
-			// If the max length or size has exceeded the limit,
-			// break the loop so we can create a new card again.
-			if (len(newCard.Sections) >= maxCardSections) || (len(newCardb) >= maxSize) {
-				break
-			}
-
-			newCard.Sections = append(newCard.Sections, s)
-			indexAdded[i] = true
-		}
-
-		cards = append(cards, newCard)
-	}
-
-	return cards, nil
 }

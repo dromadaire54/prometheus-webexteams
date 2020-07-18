@@ -1,0 +1,205 @@
+{{ define "teams.card" }}
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.2",
+  "type": "AdaptiveCard",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "{{ .Status | title }}",
+      "size": "large",
+      "color": "light",
+      "weight": "bolder"
+    },
+{{- if ne .CommonAnnotations.message "" -}}
+    {
+      "type": "TextBlock",
+      "text": "{{- .CommonAnnotations.message -}}",
+      "color": "Light",
+      "wrap": true
+    },
+{{- end -}}
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "1px",
+          "style": "{{- if eq .Status "resolved" -}}good{{- else -}}warning{{- end -}}",
+          "items": []
+        },
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {
+              "type": "ColumnSet",
+              "columns": [
+                {
+                  "type": "Column",
+                  "width": "120px",
+                  "items": [
+                    {
+                      "type": "TextBlock",
+                      "text": "Alertname:",
+                      "weight": "Bolder",
+                      "color": "Light"
+                    },
+                    {
+                      "type": "TextBlock",
+                      "text": "Namespace:",
+                      "color": "Light",
+                      "spacing": "Small",
+                      "weight": "Bolder"
+                    },
+                    {
+                      "type": "TextBlock",
+                      "text": "Job:",
+                      "color": "Light",
+                      "spacing": "Small",
+                      "weight": "Bolder"
+                    }
+                  ]
+                },
+                {
+                  "type": "Column",
+                  "width": "stretch",
+                  "items": [
+                    {
+                      "type": "TextBlock",
+                      "text": "{{- .CommonLabels.alertname -}}",
+                      "color": "Light",
+                      "spacing": "Small"
+                    },
+                    {
+                      "type": "TextBlock",
+                      "text": "{{- .CommonLabels.namespace -}}",
+                      "color": "Light",
+                      "spacing": "Small"
+                    },
+                    {
+                      "type": "TextBlock",
+                      "text": "{{- .CommonLabels.job -}}",
+                      "color": "Light",
+                      "spacing": "Small"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "ColumnSet",
+              "columns": [
+                {
+                  "type": "Column",
+                  "width": "stretch",
+                  "items": [
+                    {
+                      "type": "ColumnSet"
+                    },
+                    {
+                      "type": "TextBlock",
+                      "text": "Labels:",
+                      "separator": true,
+                      "color": "Light",
+                      "weight": "Bolder"
+                    },
+    {{- range $index, $alert := .Alerts -}}
+                    {
+                      "type": "ColumnSet",
+                      "columns": [
+                        {
+                          "type": "Column",
+                          "width": "20px"
+                        },
+                        {
+                          "type": "Column",
+                          "width": "stretch",
+                          "items": [
+                            {
+                              "type": "FactSet",
+                              "facts": [
+                                {{- range $i, $e := $alert.Labels.SortedPairs }}{{- if $i -}},{{- end -}}
+                                {
+                                  "title": "{{ $e.Name }}",
+                                  "value": "{{ $e.Value }}"
+                                }
+                                {{- end }}
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ColumnSet",
+                      "columns": [
+                        {
+                          "type": "Column",
+                          "width": "stretch",
+                          "items": [
+                            {
+                              "type": "TextBlock",
+                              "text": "Annotations:",
+                              "weight": "Bolder",
+                              "color": "Light",
+                              "separator": true
+                            },
+                            {
+                              "type": "ColumnSet",
+                              "columns": [
+                                {
+                                  "type": "Column",
+                                  "width": "20px"
+                                },
+                                {
+                                  "type": "Column",
+                                  "width": "stretch",
+                                  "items": [
+                                    {
+                                      "type": "FactSet",
+                                      "facts": [
+                                        {{- range $i, $e := $alert.Annotations.SortedPairs }}{{- if $i -}},{{- end -}}
+                                          {
+                                          "title": "{{ $e.Name }}",
+                                          "value": "{{ $e.Value }}"
+                                          }
+                                        {{- end }}
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.OpenUrl",
+          "title": "Runbook",
+          "url": "{{- $.CommonAnnotations.runbook_url -}}"
+        },
+        {
+          "type": "Action.OpenUrl",
+          "title": "Silence",
+          "url": "{{- $.ExternalURL -}}/#/silences/new?filter=%7B{{- range $i, $e := $alert.Labels.SortedPairs -}}{{- if $i -}}%2C%20{{- end -}}{{- printf "%s%c3D%c22%s%c22" $e.Name 37 37 $e.Value 37 -}}%7D{{- end -}}"
+        }
+      ]
+    }
+    {{- end }}
+  ]
+}
+{{ end }}

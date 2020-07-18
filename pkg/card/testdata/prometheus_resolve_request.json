@@ -1,21 +1,24 @@
 {
   "version": "4",
   "groupKey": "{}:{alertname=\"high_memory_load\"}",
-  "status": "firing",
+  "status": "resolved",
   "receiver": "teams_proxy",
   "groupLabels": {
       "alertname": "high_memory_load"
   },
   "commonLabels": {
       "alertname": "high_memory_load",
+      "job": "docker_nodes",
+      "namespace": "monlog",
       "monitor": "master",
       "severity": "warning"
   },
   "commonAnnotations": {
       "summary": "Prometheus Test",
-      "runbook": "https://github.com/bzon/prometheus-webexteams"
+      "runbook_url": "https://github.com/bzon/prometheus-webexteams",
+      "message": "Look out! Increase of the offset ..."
   },
-  "externalURL": "http://docker.for.mac.host.internal:9093",
+  "externalURL": "http://alertmanager.monlog.dev.lkw-walter.com",
   "alerts": [
       {
           "labels": {
@@ -23,7 +26,8 @@
               "instance": "instance-with-hyphen_and_underscore",
               "job": "docker_nodes",
               "monitor": "master",
-              "severity": "warning"
+              "severity": "warning",
+              "namespace": "monlog"
           },
           "annotations": {
               "description": "10.80.40.11 reported high memory usage with 23.28%.",
