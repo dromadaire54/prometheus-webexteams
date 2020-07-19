@@ -11,7 +11,7 @@ GOFMT_FILES?=$$(find . -name '*.go')
 GO := GO111MODULE=on go
 
 # Symlink into GOPATH
-GITHUB_USERNAME=prometheus-webexteams
+GITHUB_USERNAME=infonova
 BUILD_DIR=$(GOPATH)/src/github.com/$(GITHUB_USERNAME)/$(BINARY)
 VERSION_PKG=github.com/$(GITHUB_USERNAME)/prometheus-webexteams/pkg/version
 
@@ -23,9 +23,7 @@ DOCKER_RUN_ARG ?=
 RUN_ARGS ?=
 
 # docker
-DOCKER_QUAY_REPO=quay.io/prometheuswebexteams/prometheus-webexteams
-DOCKER_QUAY_USER=prometheuswebexteams+ci
-DOCKER_HUB_REPO=prometheuswebexteams/prometheus-webexteams
+DOCKER_HUB_REPO=infonova/prometheus-webexteams
 
 # Build the project
 all: clean dep create_bin_dir linux darwin
@@ -36,7 +34,7 @@ create_bin_dir:
 	mkdir -p $(BINDIR)
 
 github_release:
-	github-release release -u bzon -r prometheus-webexteams -t $(VERSION) -n $(VERSION)
+	github-release release -u mguggi -r prometheus-webexteams -t $(VERSION) -n $(VERSION)
 	
 linux: 
 	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) $(GO) build $(LDFLAGS) -o $(BINDIR)/$(BINARY)-linux-$(GOARCH) ./cmd/server
@@ -46,20 +44,12 @@ darwin:
 
 docker:
 	docker build -t $(DOCKER_HUB_REPO):$(VERSION) .
-	docker tag $(DOCKER_HUB_REPO):$(VERSION) $(DOCKER_QUAY_REPO):$(VERSION)
 
 docker-hub-login:
 	echo ${DOCKER_PASSWORD} | docker login --password-stdin -u ${DOCKER_USER}
 
-docker-quay-login:
-	docker login -u="${DOCKER_QUAY_USER}" -p="${DOCKER_QUAY_TOKEN}" quay.io
-
-docker-quay-push:
-	docker push $(DOCKER_QUAY_REPO):$(VERSION)
-
 docker-tag-latest:
 	docker tag $(DOCKER_HUB_REPO):$(VERSION) $(DOCKER_HUB_REPO):latest
-	docker tag $(DOCKER_QUAY_REPO):$(VERSION) $(DOCKER_QUAY_REPO):latest
 
 docker-hub-push: docker
 	docker push $(DOCKER_HUB_REPO):$(VERSION)

@@ -202,7 +202,7 @@
         {
           "type": "Action.OpenUrl",
           "title": "Silence",
-          "url": "{{- $.ExternalURL -}}/#/silences/new?filter=%7B{{- range $i, $e := $alert.Labels.SortedPairs -}}{{- if $i -}}%2C%20{{- end -}}{{- printf "%s%c3D%c22%s%c22" $e.Name 37 37 $e.Value 37 -}}%7D{{- end -}}"
+          "url": "{{- $.ExternalURL -}}/#/silences/new?filter=%7B{{- range $i, $e := $alert.Labels.SortedPairs -}}{{- if $i -}}%2C%20{{- end -}}{{- printf "%s%c3D%c22%s%c22" $e.Name 37 37 $e.Value 37 -}}{{- end -}}%7D"
         }
       ]
     }

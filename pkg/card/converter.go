@@ -32,24 +32,24 @@ func (l loggingMiddleware) Convert(ctx context.Context, a webhook.Message) (c st
 	defer func(begin time.Time) {
 		documentLoader := gojsonschema.NewStringLoader(c)
 
+		//TODO: implement error handling
 		result, err := schema.Validate(documentLoader)
 		if err != nil {
-			l.logger.Log("erro´r", err)
-		}
-
-		//TODO: implement validation stuff
-		if result.Valid() {
-			l.logger.Log("alert", "The document is valid")
+			l.logger.Log("err", err)
 		} else {
-			l.logger.Log("error", "The document is not valid. see errors :")
-			for _, desc := range result.Errors() {
-				l.logger.Log("error", desc)
+			if result.Valid() {
+				l.logger.Log("alert", "The document is valid ")
+				l.logger.Log("debug", c)
+			} else {
+				l.logger.Log("error", "The document is not valid. see errors :")
+				for _, desc := range result.Errors() {
+					l.logger.Log("error", desc)
+				}
 			}
 		}
 
 		l.logger.Log(
 			"alert", a,
-			"validation", result.Errors(),
 			"took", time.Since(begin),
 		)
 	}(time.Now())
