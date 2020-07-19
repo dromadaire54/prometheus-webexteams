@@ -49,7 +49,7 @@ docker run -d -p 2000:2000 \
     --name="promteams" \
     -e TEAMS_ACCESS_TOKEN="NzhiODhlZDYtZTF..." \
     -e TEAMS_ROOM_ID="Y2lzY29zcGFyazovL3VzL1JPT00vYWZmMTllNTAtY..." \
-    quay.io/prometheuswebexteams/prometheus-webexteams
+    infonova/prometheus-webexteams
 ```
 
 __OPTION 2:__ Run using binary.
@@ -79,7 +79,7 @@ receivers:
 - name: 'prometheus-webexteams'
   webhook_configs: # https://prometheus.io/docs/alerting/configuration/#webhook_config 
   - send_resolved: true
-    url: 'http://localhost:2000/alertmanager' # the prometheus-webexteams proxy
+    url: 'http://prometheus-webexteams:2000/alertmanager' # the prometheus-webexteams proxy
 ```
 
 > If you don't have Prometheus running yet and you wan't to try how this works,  
@@ -128,10 +128,10 @@ Create the following json data as `prom-alert.json`.
 ```
 
 ```bash
-curl -X POST -d @prom-alert.json http://localhost:2000/alertmanager
+curl -X POST -d @pkg/card/testdata/prometheus_fire_request.json http://<hostname|ip>:2000/alertmanager
 ```
 
-The teams channel should received a message.
+The teams room should received a message.
 
 ## Sending Alerts to Multiple Teams Rooms
 
@@ -147,11 +147,20 @@ Create a yaml file with the following format.
 
 ```yaml
 connectors:
-- high_priority_channel: "https://outlook.office.com/webhook/xxxx/aaa/bbb"
-- low_priority_channel: "https://outlook.office.com/webhook/xxxx/aaa/ccc"
-```
+  - request_path: high-prio-ch
+    access_token: NzhiODhlZDYtZ...
+    room_id: Y2lzY29zcGFyazovL...
+    template_file: ./resources/default-message-card.tmpl
+    webhook_url: https://webexapis.com/v1/messages
+    escape_underscores: false
+- request_path: low-prio-ch
+    access_token: NzhiODhlZDYtZ...
+    room_id: Y2lzY29zcGFyazovL...
+    template_file: ./resources/default-message-card.tmpl
+    webhook_url: https://webexapis.com/v1/messages
+    escape_underscores: false
 
-> __NOTE__: high_priority_channel and low_priority_channel are example handler or request path names.
+```
 
 When running as a docker container, mount the config file in the container and set the __CONFIG_FILE__ environment variable.
 
@@ -160,19 +169,16 @@ docker run -d -p 2000:2000 \
     --name="promteams" \
     -v /tmp/config.yml:/tmp/config.yml \
     -e CONFIG_FILE="/tmp/config.yml" \
-    quay.io/prometheuswebexteams/prometheus-webexteams:v1.4.0
+    infonova/prometheus-webexteams
 ```
 
 When running as a binary, use the __-config-file__ flag.
 
 ```bash
-./prometheus-webexteams server \
-    -l localhost \
-    -p 2000 \
-    -config-file /tmp/config.yml
+./bin/prometheus-webexteams-<goos>-<goarch> -config-file /tmp/config.yml
 ```
 
-This will create the request uri handlers __/high_priority_channel__ and __/low_priority_channel__.
+This will create the request uri handlers __/high-prio-ch__ and __/low-prio-ch__.
 
 To validate your configuration, see the __/config__ endpoint of the application.
 
@@ -181,83 +187,48 @@ curl localhost:2000/config
 
 [
   {
-    "high_priority_channel": "https://outlook.office.com/webhook/xxxx/aaa/bbb"
+    "RequestPath": "high-prio-ch",
+    "AccessToken": "NzhiODhlZDYtZ...",
+    "RoomId": "Y2lzY29zcGFyazovL...",
+    "TemplateFile": "./resources/default-message-card.tmpl",
+    "WebhookURL": "https://webexapis.com/v1/messages",
+    "EscapeUnderscores": false
   },
   {
-    "low_priority_channel": "https://outlook.office.com/webhook/xxxx/aaa/ccc"
+    "RequestPath": "low-prio-ch",
+    "AccessToken": "NzhiODhlZDYtZ...",
+    "RoomId": "Y2lzY29zcGFyazovL...",
+    "TemplateFile": "./resources/default-message-card.tmpl",
+    "WebhookURL": "https://webexapis.com/v1/messages",
+    "EscapeUnderscores": false
   }
 ]
 ```
 
-### Setting up Prometheus Alert Manager
+### Setting up Prometheus Alertmanager
 
 Considering the __prometheus-webexteams config file__ settings, your Alert Manager would have a configuration like the following.
 
 ```yaml
 route:
-  group_by: ['alertname']
-  group_interval: 30s
-  repeat_interval: 30s
-  group_wait: 30s
-  receiver: 'low_priority_receiver'  # default/fallback request handler
+  ...
   routes:
-    - receiver: high_priority_receiver
+    - receiver: high_prio_receiver
       match:
         severity: critical
-    - receiver: low_priority_receiver
+    - receiver: low_prio_receiver
       match:
         severity: warning
 
 receivers:
-- name: 'high_priority_receiver'
+- name: 'high_prio_receiver'
   webhook_configs:
     - send_resolved: true
-      url: 'http://localhost:2000/high_priority_channel' # request handler 1
-- name: 'low_priority_receiver'
+      url: 'http://<servicename>:2000/high_prio_ch' # request handler 1
+- name: 'low_prio_receiver'
   webhook_configs:
     - send_resolved: true
-      url: 'http://localhost:2000/low_priority_channel' # request handler 2
-```
-
-## Customise Messages to MS Teams
-
-This application uses a [default Microsoft Teams Message card template](./default-message-card.tmpl) to convert incoming Prometheus alerts to teams message cards. This template can be customised. Simply create a new file that you want to use as your custom template. It uses the [Go Templating Engine](https://golang.org/pkg/text/template/) and the [Prometheus Alertmanager Notification Template](https://prometheus.io/docs/alerting/notifications/). Also see the [Office 365 Connector Card Reference](https://docs.microsoft.com/en-us/microsoftteams/platform/concepts/cards/cards-reference#office-365-connector-card) and some [examples](./examples) for more information to construct your template. Apart from that, you can use the [Message Card Playground](https://messagecardplayground.azurewebsites.net/) to form the basic structure of your card.
-
-When running as a docker container, mount the template file in the container and set the __TEMPLATE_FILE__ environment variable.
-
-```bash
-docker run -d -p 2000:2000 \
-    --name="promteams" \
-    -e TEAMS_INCOMING_WEBHOOK_URL="https://outlook.office.com/webhook/xxx" \
-    -v /tmp/card.tmpl:/tmp/card.tmpl \
-    -e TEMPLATE_FILE="/tmp/card.tmpl" \
-    quay.io/prometheuswebexteams/prometheus-webexteams
-```
-
-When running as a binary, use the __-template-file__ flag.
-
-```bash
-./prometheus-webexteams server \
-    -l localhost \
-    -p 2000 \
-    -template-file /tmp/card.tmpl
-```
-
-### Customise Messages per MS Teams Channel
-
-You can also use a custom template per webhook by using the `connectors_with_custom_templates`.
-
-```yaml
-# alerts in the connectors here will use the default template.
-connectors:
-- alert1: <webhook> 
-
-# alerts in the connectors here will use template_file specified.
-connectors_with_custom_templates:
-- request_path: /alert2
-  template_file: ./default-message-card.tmpl
-  webhook_url: <webhook> 
-  escape_underscores: true # get the effect of -auto-escape-underscores.
+      url: 'http://<servicename>:2000/low_prio_ch' # request handler 2
 ```
 
 ### Use Template functions to improve your templates
@@ -275,38 +246,40 @@ E.g, `-config-file` is `CONFIG_FILE`, `-debug` is `DEBUG`, `-log-format` is `LOG
 
 ```
 Usage of prometheus-webexteams:
-  -auto-escape-underscores
-    	Automatically replace all '_' with '\_' from texts in the alert.
   -config-file string
-    	The connectors configuration file.
+        The connectors configuration file.
   -debug
-    	Set log level to debug mode. (default true)
+        Set log level to debug mode. (default true)
+  -escape-underscores
+        Automatically replace all '_' with '\_' from texts in the alert.
   -http-addr string
-    	HTTP listen address. (default ":2000")
+        HTTP listen address. (default ":2000")
   -idle-conn-timeout duration
-    	The HTTP client idle connection timeout duration. (default 1m30s)
+        The HTTP client idle connection timeout duration. (default 1m30s)
   -jaeger-agent string
-    	Jaeger agent endpoint (default "localhost:6831")
+        Jaeger agent endpoint (default "localhost:6831")
   -jaeger-trace
-    	Send traces to Jaeger.
+        Send traces to Jaeger.
   -log-format string
-    	json|fmt (default "json")
+        json|fmt (default "json")
   -max-idle-conns int
-    	The HTTP client maximum number of idle connections (default 100)
-  -teams-incoming-webhook-url string
-    	The default Microsoft Teams webhook connector.
-  -teams-request-uri string
-    	The default request URI path where Prometheus will post to.
+        The HTTP client maximum number of idle connections (default 100)
+  -request-uri string
+        The default request URI path where Prometheus will post to. (default "alertmanager")
+  -teams-access-token string
+        The access token to authorize the requests.
+  -teams-room-id string
+        The room specifies the target room of the messages.
+  -teams-webhook-url string
+        The default Webex Teams webhook connector. (default "https://webexapis.com/v1/messages")
   -template-file string
-    	The Microsoft Teams Message Card template file. (default "./default-message-card.tmpl")
+        The default Webex Teams Message Card template file. (default "resources/default-message-card.tmpl")
   -tls-handshake-timeout duration
-    	The HTTP client TLS handshake timeout. (default 30s)
+        The HTTP client TLS handshake timeout. (default 30s)
+  -version
+        Print the version
 ```
 
 ## Kubernetes Deployment
 
 See [Helm Guide](./chart/prometheus-webexteams/README.md).
-
-## Contributing
-
-See [Contributing Guide](./CONTRIBUTING.md)

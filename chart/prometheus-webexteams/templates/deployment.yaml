@@ -28,8 +28,8 @@ spec:
           configMap:
             name: {{ template "app.name" . }}-config
         - name: card-template-volume
-          configMap:
-            name: {{ template "app.name" . }}-card-template
+          secret:
+            secretName: {{ template "app.name" . }}-card-template
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -46,10 +46,9 @@ spec:
               mountPath: /etc/template
           args:
             - -config-file=/etc/config/connectors.yaml
-            - -template-file=/etc/template/card.tmpl
           {{- with .Values.container.additionalArgs }}
 {{ toYaml . | indent 12 }}
-          {{- end}}
+          {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
           - name: http

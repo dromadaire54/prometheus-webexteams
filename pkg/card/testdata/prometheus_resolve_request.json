@@ -10,7 +10,7 @@
   },
   "commonLabels": {},
   "commonAnnotations": {},
-  "externalURL": "http://alertmanager.monlog.dev.lkw-walter.com",
+  "externalURL": "http://alertmanager.monlog.dev.mydomain.com",
   "alerts": [
     {
       "labels": {
@@ -28,7 +28,7 @@
       },
       "annotations": {
         "message": "The scrape duration of 10.244.18.41:8080/prom-kube-state-metrics is high.",
-        "runbook_url": "http://lkwconfluence.lkw-walter.com/display/MM/HighScrapeDuration"
+        "runbook_url": "http://confluence.mydomain.com/display/mm/HighScrapeDuration"
       },
       "startsAt": "2018-03-07T06:33:21.873077559-05:00",
       "endsAt": "0001-01-01T00:00:00Z"
