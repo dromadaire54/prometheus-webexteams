@@ -25,3 +25,6 @@ coverage.txt
 
 # GoLand stuff
 .idea
+
+# Private Configuration File
+values_dev.yaml
