@@ -53,9 +53,7 @@ func (m *templatedCard) executeTemplate(promAlert webhook.Message) (string, erro
 		ExternalURL:       promAlert.ExternalURL,
 	}
 
-	cardString, err := m.template.ExecuteTextString(
-		`{{ template "teams.card" . }}`, data,
-	)
+	cardString, err := m.template.ExecuteTextString(`{{ template "teams.card" . }}`, data)
 	if err != nil {
 		return "", fmt.Errorf("failed to template alerts: %w", err)
 	}
@@ -93,7 +91,8 @@ func jsonEscapeMessage(promAlert webhook.Message) webhook.Message {
 	return retPromAlert
 }
 
-/* ParseTemplateFile creates an alertmanager template from the given file.
+// ParseTemplateFile creates an alertmanager template from the given file.
+/*
 The functions include all functions (except 'env' and 'expandenv' ) from sprig (http://masterminds.github.io/sprig/)
 and the following functions from HELM templating:
   - toToml

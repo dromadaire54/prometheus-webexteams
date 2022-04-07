@@ -30,6 +30,10 @@ spec:
         - name: card-template-volume
           secret:
             secretName: {{ template "app.name" . }}-card-template
+      {{ if .Values.image.pullSecrets.enabled }}
+      imagePullSecrets: 
+        - name: {{ .Values.image.pullSecrets.name }}
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

@@ -5,6 +5,8 @@ image:
   repository: quay.io/prometheuswebexteams/prometheus-webexteams
   tag: v0.0.1
   pullPolicy: Always
+  pullSecrets:
+    enabled: false
 
 extraEnvs:
 
@@ -44,3 +46,55 @@ metrics:
 
 connectors: []
 
+---
+replicaCount: 1
+
+image:
+  repository: quay.io/prometheuswebexteams/prometheus-webexteams
+  tag: v0.0.1
+  pullPolicy: Always
+
+extraEnvs:
+
+container:
+  port: 2000
+  additionalArgs: []
+
+resources:
+  limits:
+    cpu: 10m
+    memory: 32Mi
+  requests:
+    cpu: 1m
+    memory: 8Mi
+
+service:
+  type: ClusterIP
+  port: 2000
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+podSecurityContext:
+  runAsUser: 1000
+  runAsNonRoot: true
+
+priorityClassName: ""
+
+metrics:
+  serviceMonitor:
+    enabled: false
+    additionalLabels: {}
+    scrapeInterval: 30s
+
+connectors: []
+
+receivers:
+  default:
+    - name: webhook_default
+      webhookURL: http://localhost:2000
+
+namespaces: {}

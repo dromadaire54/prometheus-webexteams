@@ -4,16 +4,17 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/infonova/prometheus-webexteams/pkg/card"
-	"github.com/infonova/prometheus-webexteams/pkg/service"
-	"github.com/infonova/prometheus-webexteams/pkg/transport"
-	"github.com/infonova/prometheus-webexteams/pkg/version"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
 	"syscall"
 	"time"
+
+	"github.com/infonova/prometheus-webexteams/pkg/card"
+	"github.com/infonova/prometheus-webexteams/pkg/service"
+	"github.com/infonova/prometheus-webexteams/pkg/transport"
+	"github.com/infonova/prometheus-webexteams/pkg/version"
 
 	ocprometheus "contrib.go.opencensus.io/exporter/prometheus"
 	"github.com/labstack/echo/v4"
@@ -39,11 +40,11 @@ type PromTeamsConfig struct {
 	Connectors []Connector `yaml:"connectors"`
 }
 
-// ConnectorWithCustomTemplate .
+// Connector ConnectorWithCustomTemplate .
 type Connector struct {
 	RequestPath       string `yaml:"request_path"`
 	AccessToken       string `yaml:"access_token"`
-	RoomId            string `yaml:"room_id"`
+	RoomID            string `yaml:"room_id"`
 	TemplateFile      string `yaml:"template_file"`
 	WebhookURL        string `yaml:"webhook_url"`
 	EscapeUnderscores bool   `yaml:"escape_underscores"`
@@ -73,7 +74,7 @@ func main() { //nolint: funlen
 		requestURI                    = fs.String("request-uri", "alertmanager", "The default request URI path where Prometheus will post to.")
 		teamsWebhookURL               = fs.String("teams-webhook-url", "https://webexapis.com/v1/messages", "The default Webex Teams webhook connector.")
 		teamsAccessToken              = fs.String("teams-access-token", "", "The access token to authorize the requests.")
-		teamsRoomId                   = fs.String("teams-room-id", "", "The room specifies the target room of the messages.")
+		teamsRoomID                   = fs.String("teams-room-id", "", "The room specifies the target room of the messages.")
 		templateFile                  = fs.String("template-file", "resources/default-message-card.tmpl", "The default Webex Teams Message Card template file.")
 		escapeUnderscores             = fs.Bool("escape-underscores", false, "Automatically replace all '_' with '\\_' from texts in the alert.")
 		configFile                    = fs.String("config-file", "", "The connectors configuration file.")
@@ -145,6 +146,7 @@ func main() { //nolint: funlen
 	if *configFile != "" {
 		// parse config file
 		tc, err = parseTeamsConfigFile(*configFile)
+		fmt.Printf("%+v", tc)
 		if err != nil {
 			fmt.Fprint(os.Stderr, err.Error())
 			os.Exit(1)
@@ -157,7 +159,7 @@ func main() { //nolint: funlen
 				RequestPath:       *requestURI,
 				WebhookURL:        *teamsWebhookURL,
 				AccessToken:       *teamsAccessToken,
-				RoomId:            *teamsRoomId,
+				RoomID:            *teamsRoomID,
 				TemplateFile:      *templateFile,
 				EscapeUnderscores: *escapeUnderscores,
 			},
@@ -215,7 +217,7 @@ func main() { //nolint: funlen
 			logger.Log("err", fmt.Sprintf("The teams-access-token is required for request_path '%s'", c.RequestPath))
 			os.Exit(1)
 		}
-		if len(c.RoomId) == 0 {
+		if len(c.RoomID) == 0 {
 			logger.Log("err", fmt.Sprintf("The teams-room-id is required for request_path '%s'", c.RequestPath))
 			os.Exit(1)
 		}
@@ -243,7 +245,7 @@ func main() { //nolint: funlen
 
 		var r transport.Route
 		r.RequestPath = c.RequestPath
-		r.Service = service.NewSimpleService(converter, httpClient, c.WebhookURL, c.AccessToken, c.RoomId)
+		r.Service = service.NewSimpleService(converter, httpClient, c.TemplateFile, c.WebhookURL, c.AccessToken, c.RoomID)
 		r.Service = service.NewLoggingService(logger, r.Service)
 		routes = append(routes, r)
 	}

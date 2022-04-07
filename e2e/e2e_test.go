@@ -12,6 +12,10 @@ import (
 	"testing"
 
 	"github.com/go-kit/kit/log"
+	"github.com/infonova/prometheus-webexteams/pkg/card"
+	"github.com/infonova/prometheus-webexteams/pkg/service"
+	"github.com/infonova/prometheus-webexteams/pkg/testutils"
+	"github.com/infonova/prometheus-webexteams/pkg/transport"
 )
 
 var update = flag.Bool("update", false, "update .golden files")
@@ -22,7 +26,7 @@ type alert struct {
 }
 
 func TestServer(t *testing.T) {
-	tmpl, err := card.ParseTemplateFile("../default-message-card.tmpl")
+	tmpl, err := card.ParseTemplateFile("../resources/webex-teams-request.tmpl")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,31 +35,24 @@ func TestServer(t *testing.T) {
 
 	logger := log.NewJSONLogger(log.NewSyncWriter(os.Stderr))
 
-	// Create a dummy Microsoft teams server.
+	// Create a dummy Webex teams server.
 	teamsSrv := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			b, _ := ioutil.ReadAll(r.Body)
 			logger.Log("request", string(b))
 			w.WriteHeader(200)
-			_, _ = w.Write([]byte("1"))
+			_, _ = w.Write([]byte("12345"))
 		}),
 	)
 	defer teamsSrv.Close()
 
 	var (
-		testWebhookURL    string
-		isIntegrationTest bool
+		testWebhookURL string
+		roomID         string
+		accessToken    string
 	)
 
-	// For Integration test.
-	if v := os.Getenv("INTEGRATION_TEST_WEBHOOK_URL"); len(v) > 0 {
-		t.Log("Running integration test")
-		testWebhookURL = v
-		isIntegrationTest = true
-		// For Unit test.
-	} else {
-		testWebhookURL = teamsSrv.URL
-	}
+	testWebhookURL = teamsSrv.URL
 
 	tests := []struct {
 		name   string
@@ -69,16 +66,14 @@ func TestServer(t *testing.T) {
 					RequestPath: "/alertmanager",
 					Service: service.NewLoggingService(
 						logger,
-						service.NewSimpleService(
-							c, http.DefaultClient, testWebhookURL,
-						),
+						service.NewSimpleService(c, http.DefaultClient, "../resources/webex-teams-request.tmpl", testWebhookURL, accessToken, roomID),
 					),
 				},
 			},
 			[]alert{
 				{
 					requestPath:   "/alertmanager",
-					promAlertFile: "../pkg/card/testdata/prom_post_request.json",
+					promAlertFile: "../pkg/card/testdata/prometheus_fire_request.json",
 				},
 			},
 		},
@@ -120,23 +115,18 @@ func TestServer(t *testing.T) {
 				if resp.StatusCode != 200 {
 					t.Fatalf("want '%d', got '%d'", 200, resp.StatusCode)
 				}
-
-				var prs []service.PostResponse
+				var prs service.PostResponse
 				if err := json.NewDecoder(resp.Body).Decode(&prs); err != nil {
 					t.Fatal(err)
 				}
-				if isIntegrationTest {
-					testutils.CompareToGoldenFile(t, prs, t.Name()+"/integration_resp.json", *update)
-					return
-				}
 
 				// because webhook url port dynamically changes
-				for i := range prs {
-					if prs[i].WebhookURL == "" {
-						t.Fatal("webhook url should not be empty")
-					}
-					prs[i].WebhookURL = ""
+				if prs.WebhookURL == "" {
+					t.Fatal("webhook url should not be empty")
 				}
+
+				prs.WebhookURL = ""
+
 				testutils.CompareToGoldenFile(t, prs, t.Name()+"/resp.json", *update)
 			}
 		})

@@ -1,12 +1,7 @@
-{{ define "teams.request" }}
+{{ define "teams.card" }}
 {
-        "roomId": "{{ .RoomId }}",
-        "text": "alert in card format ...",
-        "attachments": [
-        {
-            "contentType": "application/vnd.microsoft.card.adaptive",
-            "content": {{ .Card }}
-        }
-    ]
+"version": "1.2",
+"markdown" : "{{ .Status }} alert from Alert manager",
+"type": "AdaptiveCard"
 }
 {{ end }}

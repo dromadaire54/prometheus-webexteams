@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/infonova/prometheus-webexteams/pkg/card"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/infonova/prometheus-webexteams/pkg/card"
 
 	"github.com/prometheus/alertmanager/notify/webhook"
 	"go.opencensus.io/trace"
@@ -27,19 +28,20 @@ type Service interface {
 type simpleService struct {
 	converter   card.Converter
 	client      *http.Client
+	template    string
 	webhookURL  string
 	accessToken string
-	roomId      string
+	roomID      string
 }
 
 type requestData struct {
-	RoomId string
+	RoomID string
 	Card   string
 }
 
 // NewSimpleService creates a simpleService.
-func NewSimpleService(converter card.Converter, client *http.Client, webhookURL string, accessToken string, roomId string) Service {
-	return simpleService{converter, client, webhookURL, accessToken, roomId}
+func NewSimpleService(converter card.Converter, client *http.Client, template string, webhookURL string, accessToken string, roomID string) Service {
+	return simpleService{converter, client, template, webhookURL, accessToken, roomID}
 }
 
 func (s simpleService) Post(ctx context.Context, wm webhook.Message) (PostResponse, error) {
@@ -53,6 +55,10 @@ func (s simpleService) Post(ctx context.Context, wm webhook.Message) (PostRespon
 
 	pr, err := s.post(ctx, c, s.webhookURL)
 
+	if err != nil {
+		return pr, err
+	}
+
 	return pr, nil
 }
 
@@ -61,25 +67,12 @@ func (s simpleService) post(ctx context.Context, c string, url string) (PostResp
 	defer span.End()
 
 	pr := PostResponse{WebhookURL: url}
-
-	data := requestData{
-		RoomId: s.roomId,
-		Card:   c,
-	}
-	tmpl, err := card.ParseTemplateFile("./resources/webex-teams-request.tmpl")
+	req, err := http.NewRequestWithContext(ctx, "POST", s.webhookURL, strings.NewReader(c))
 	if err != nil {
-		err = fmt.Errorf("load 'message.request' template failed: %w", err)
+		err = fmt.Errorf("new request with context failed: %w", err)
 		return pr, err
 	}
 
-	var reqStr string
-	reqStr, err = tmpl.ExecuteTextString(`{{ template "teams.request" . }}`, data)
-	if err != nil {
-		err = fmt.Errorf("execute 'message.request' template failed: %w", err)
-		return pr, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", s.webhookURL, strings.NewReader(reqStr))
 	// add authorization header to the request
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", s.accessToken))
 	req.Header.Set("Content-Type", "application/json")
